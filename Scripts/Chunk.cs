@@ -1,6 +1,4 @@
-﻿using Assets.Classes;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshRenderer))]
@@ -55,17 +53,17 @@ public class Chunk : MonoBehaviour
                 {
                     float noiseX = Mathf.Abs((x + transform.position.x) / 20f * frequency) + seed;
                     float noiseValue = SimplexNoise.Noise.Generate(noiseX, noiseY, noiseZ);
-                    BlockType type = BlockType.Air;
+                    Material mat = Material.Air;
 
                     noiseValue += (10-y)/10f;
 
                     if (noiseValue > 0.2f)
-                        type = BlockType.Ground;
+                        mat = Material.Grass;
 
                     if (y == 0)
-                        type = BlockType.Ground;
+                        mat = Material.Grass;
 
-                    blocks[x, y, z] = new Block(type, ChunkX * chunkWidth + x, y, ChunkZ * chunkWidth + z);
+                    blocks[x, y, z] = new Block(mat, ChunkX * chunkWidth + x, y, ChunkZ * chunkWidth + z);
 
                 }
             }
@@ -90,24 +88,24 @@ public class Chunk : MonoBehaviour
                     Block block = blocks[x, y, z];
                     if (block.IsAir())
                         continue;
-                    // Top Face
+                    // Up Face
                     if (IsAir(new Vector3Int(x, y + 1, z)))
-                        BuildFace(block.type, new Vector3(x, y, z), Vector3.forward, Vector3.right, false, vertices, uvs, indices);
-                    // Bottom Face
+                        BuildFace(block.material, BlockFace.up, new Vector3(x, y, z), Vector3.forward, Vector3.right, false, vertices, uvs, indices);
+                    // Down Face
                     if (IsAir(new Vector3Int(x, y - 1, z)))
-                        BuildFace(block.type, new Vector3(x, y - 1, z), Vector3.forward, Vector3.right, true, vertices, uvs, indices);
+                        BuildFace(block.material, BlockFace.down, new Vector3(x, y - 1, z), Vector3.forward, Vector3.right, true, vertices, uvs, indices);
                     // Left Face
                     if (IsAir(new Vector3Int(x - 1, y, z)))
-                        BuildFace(block.type, new Vector3(x, y - 1, z), Vector3.up, Vector3.forward, true, vertices, uvs, indices);
+                        BuildFace(block.material, BlockFace.left, new Vector3(x, y - 1, z), Vector3.up, Vector3.forward, true, vertices, uvs, indices);
                     // Right Face
                     if (IsAir(new Vector3Int(x + 1, y, z)))
-                        BuildFace(block.type, new Vector3(x + 1, y - 1, z), Vector3.up, Vector3.forward, false, vertices, uvs, indices);
+                        BuildFace(block.material, BlockFace.right, new Vector3(x + 1, y - 1, z), Vector3.up, Vector3.forward, false, vertices, uvs, indices);
                     // Back Face
                     if (IsAir(new Vector3Int(x, y, z - 1)))
-                        BuildFace(block.type, new Vector3(x, y - 1, z), Vector3.up, Vector3.right, false, vertices, uvs, indices);
+                        BuildFace(block.material, BlockFace.back, new Vector3(x, y - 1, z), Vector3.up, Vector3.right, false, vertices, uvs, indices);
                     // Front Face
                     if (IsAir(new Vector3Int(x, y, z + 1)))
-                        BuildFace(block.type, new Vector3(x, y - 1, z + 1), Vector3.up, Vector3.right, true, vertices, uvs, indices);
+                        BuildFace(block.material, BlockFace.front, new Vector3(x, y - 1, z + 1), Vector3.up, Vector3.right, true, vertices, uvs, indices);
                 }
             }
         }
@@ -122,7 +120,7 @@ public class Chunk : MonoBehaviour
         meshCollider.sharedMesh = mesh;
     }
 
-    private void BuildFace(BlockType type, Vector3 corner, Vector3 up, Vector3 right, bool reversed, List<Vector3> verts, List<Vector2> uvs, List<int> indices)
+    private void BuildFace(Material material, BlockFace face, Vector3 corner, Vector3 up, Vector3 right, bool reversed, List<Vector3> verts, List<Vector2> uvs, List<int> indices)
     {
         int index = verts.Count;
 
@@ -131,10 +129,20 @@ public class Chunk : MonoBehaviour
         verts.Add(corner + right); // Bottom Right
         verts.Add(corner + up + right); // Top Right
 
-        uvs.Add(new Vector2(0, 0));
-        uvs.Add(new Vector2(0, 1));
-        uvs.Add(new Vector2(1, 0));
-        uvs.Add(new Vector2(1, 1));
+        Vector2 uvWidth = new Vector2(0.5f, 1f);
+        Vector2 uvCorner = new Vector2(0, 0);
+
+        if(face != BlockFace.up)
+        {
+            uvCorner = new Vector2(0.5f, 0);
+        }
+
+
+        uvs.Add(new Vector2(uvCorner.x, uvCorner.y));
+        uvs.Add(new Vector2(uvCorner.x, uvCorner.y + uvWidth.y));
+        uvs.Add(new Vector2(uvCorner.x + uvWidth.x, uvCorner.y));
+        uvs.Add(new Vector2(uvCorner.x + uvWidth.x, uvCorner.y + uvWidth.y));
+
 
         if (!reversed)
         {
@@ -210,12 +218,8 @@ public class Chunk : MonoBehaviour
 
     public bool BreakBlock(Block block)
     {
-        switch (block.type) 
-        {
-            case BlockType.Ground: break;
-        }
-
-        block.type = BlockType.Air;
+        SoundManager.instance.PlayBlockAudio(ActionType.Dig, block.material);
+        block.material = Material.Air;
         RecalculateMesh();
         return true;
     }
@@ -224,7 +228,20 @@ public class Chunk : MonoBehaviour
     {
         if (!IsInArrayBounds(position))
             return false;
-        return BreakBlock(blocks[position.x, position.y, position.z]);
+        return BreakBlock(GetBlock(position));
+    }
+    public bool PlaceBlock(Block block, Material material)
+    {
+        SoundManager.instance.PlayBlockAudio(ActionType.Place, material);
+        block.material = material;
+        RecalculateMesh();
+        return true;
+    }
+    public bool PlaceBlock(Vector3Int position, Material material)
+    {
+        if (!IsInArrayBounds(position))
+            return false;
+        return PlaceBlock(GetBlock(position), material);
     }
 
     public bool IsAir(Vector3Int position)

@@ -1,5 +1,4 @@
-﻿using Assets.Classes;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class PlayerInput : MonoBehaviour
 {
@@ -99,7 +98,7 @@ public class PlayerInput : MonoBehaviour
         if ((int) hitPoint.x == (int) transform.position.x && (int) hitPoint.y == (int) (transform.position.y + transform.lossyScale.y / 2f + 0.2f) && (int) hitPoint.z == (int) transform.position.z)
             return;
 
-        TerrainManager.instance.GetBlock(hitPoint).type = BlockType.Ground;
+        TerrainManager.instance.PlaceBlock(hitPoint, Material.Grass);
         chunk.RecalculateMesh();
     }
 }

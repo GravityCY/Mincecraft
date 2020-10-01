@@ -1,15 +1,14 @@
-﻿using Assets.Classes;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Block
 {
-	public BlockType type;
+	public Material material;
 
 	public int x, y, z;
 
-	public Block(BlockType type, int x,int y, int z)
+	public Block(Material material, int x,int y, int z)
 	{
-		this.type = type;
+		this.material = material;
 		this.x = x;
 		this.y = y;
 		this.z = z;
@@ -23,7 +22,7 @@ public class Block
 
 	public bool IsAir()
     {
-		return type == BlockType.Air;
+		return material == Material.Air;
     }
 
 	public void Break()

@@ -22,7 +22,7 @@ public class TerrainManager : MonoBehaviour
     [Tooltip("The amount of blocks to populate a chunk with horizontally")]
     public int chunkWidth;
     [Tooltip("The default material of a chunks mesh")]
-    public Material defMat;
+    public UnityEngine.Material defMat;
 
     [Header("Player")]
     [Tooltip("Distance of the chunks rendering around the player")]
@@ -144,6 +144,12 @@ public class TerrainManager : MonoBehaviour
         Chunk chunk = GetChunkWorldSpace(point);
         if (chunk == null) return false;
         return chunk.BreakBlock(chunk.WorldToLocal(point));
+    }
+    public bool PlaceBlock(Vector3 point, Material type)
+    {
+        Chunk chunk = GetChunkWorldSpace(point);
+        if (chunk == null) return false;
+        return chunk.PlaceBlock(chunk.WorldToLocal(point), type);
     }
 
     // Public
