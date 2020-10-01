@@ -17,7 +17,8 @@ public class Block
 
 	public Chunk GetChunk()
     {
-		return TerrainManager.instance.GetChunkWorldSpace(new Vector3(x, y, z));
+		Chunk chunk = TerrainManager.instance.GetChunkWorldSpace(new Vector3(x, y, z));
+		return chunk;
     }
 
 	public bool IsAir()

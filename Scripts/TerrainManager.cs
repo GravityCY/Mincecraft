@@ -122,9 +122,12 @@ public class TerrainManager : MonoBehaviour
     public Block GetBlock(Vector3 point)
     {
         Chunk chunk = GetChunkWorldSpace(point);
+        Debug.Log("GetBlock(Vector3 point), Chunk is null: " + (chunk == null));
         if (chunk == null) return null;
         Vector3Int blockPosition = chunk.WorldToLocal(point);
-        return chunk.GetBlock(blockPosition);
+        Block block = chunk.GetBlock(blockPosition);
+        Debug.Log("GetBlock(Vector3 point), Block is null: " + (block == null));
+        return block;
     }
 
     // Public

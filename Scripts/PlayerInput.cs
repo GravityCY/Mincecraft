@@ -29,9 +29,10 @@ public class PlayerInput : MonoBehaviour
     {
         BlockFace face = BlockFaceUtils.GetBlockFaceFromNormal(result.normal);
         Vector3 hitPoint = BlockFaceUtils.Normalize(result.point, face);
-        hitPoint.y += 1;
         Chunk chunk = TerrainManager.instance.GetChunkWorldSpace(hitPoint);
-        TerrainManager.instance.GetBlock(hitPoint).Break();
+        Block block = TerrainManager.instance.GetBlock(hitPoint);
+        Debug.Log("BreakBlock(RaycastHit result), Block is null: " + (block == null));
+        block.Break();
 
         float hitXF = hitPoint.x;
         float hitZF = hitPoint.z;

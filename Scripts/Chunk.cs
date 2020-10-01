@@ -155,7 +155,6 @@ public class Chunk : MonoBehaviour
 
     public Vector3Int WorldToLocal(Vector3 position)
     {
-
         int x = (int) (position.x - ChunkX * chunkWidth);
         int y = (int)  position.y;
         int z = (int) (position.z / ChunkZ * chunkWidth);
