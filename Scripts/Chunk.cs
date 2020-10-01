@@ -157,7 +157,7 @@ public class Chunk : MonoBehaviour
     {
         int x = (int) (position.x - ChunkX * chunkWidth);
         int y = (int)  position.y;
-        int z = (int) (position.z / ChunkZ * chunkWidth);
+        int z = (int) (position.z - ChunkZ * chunkWidth);
         return new Vector3Int(x, y, z);
     }
 
@@ -185,13 +185,23 @@ public class Chunk : MonoBehaviour
         return blocks[position.x,position.y,position.z];
     }
 
+    public bool BreakBlock(Block block)
+    {
+        switch (block.type) 
+        {
+            case BlockType.Ground: break;
+        }
+
+        block.type = BlockType.Air;
+        RecalculateMesh();
+        return true;
+    }
+
     public bool BreakBlock(Vector3Int position)
     {
         if (!IsInArrayBounds(position))
             return false;
-        blocks[position.x, position.y, position.z].type = BlockType.Air;
-        RecalculateMesh();
-        return true;
+        return BreakBlock(blocks[position.x, position.y, position.z]);
     }
 
     public bool IsAir(Vector3Int position)

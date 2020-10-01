@@ -30,7 +30,6 @@ public class Block
     {
 		Chunk chunk = GetChunk();
 		chunk.BreakBlock(new Vector3Int(x, y, z));
-		chunk.RecalculateMesh();
 	}
 
 }
