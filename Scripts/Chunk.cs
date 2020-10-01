@@ -1,4 +1,5 @@
 ﻿using Assets.Classes;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,6 +10,10 @@ public class Chunk : MonoBehaviour
 {
     public int ChunkX { get; set; }
     public int ChunkZ { get; set; }
+
+    private int seed;
+    private float frequency;
+    private float scale;
 
     private int chunkWidth;
     private int chunkHeight;
@@ -27,6 +32,9 @@ public class Chunk : MonoBehaviour
 
         chunkWidth = TerrainManager.instance.chunkWidth;
         chunkHeight = TerrainManager.instance.chunkHeight;
+        seed = TerrainManager.instance.seed;
+        frequency = TerrainManager.instance.frequency;
+        scale = TerrainManager.instance.scale;
 
         blocks = new Block[chunkWidth, chunkHeight, chunkWidth];
 
@@ -39,15 +47,29 @@ public class Chunk : MonoBehaviour
     {
         for (int y = 0; y < chunkHeight; y++)
         {
+            float noiseY = Mathf.Abs(y / 20f * frequency) + seed;
             for (int z = 0; z < chunkWidth; z++)
             {
+                float noiseZ = Mathf.Abs((z + transform.position.z) / 20f * frequency) + seed;
                 for (int x = 0; x < chunkWidth; x++)
                 {
-                    blocks[x, y, z] = new Block(BlockType.Ground, ChunkX * chunkWidth + x, y, ChunkZ * chunkWidth + z);
+                    float noiseX = Mathf.Abs((x + transform.position.x) / 20f * frequency) + seed;
+                    float noiseValue = SimplexNoise.Noise.Generate(noiseX, noiseY, noiseZ);
+                    BlockType type = BlockType.Air;
+
+                    noiseValue += (10-y)/10f;
+
+                    if (noiseValue > 0.2f)
+                        type = BlockType.Ground;
+
+                    if (y == 0)
+                        type = BlockType.Ground;
+
+                    blocks[x, y, z] = new Block(type, ChunkX * chunkWidth + x, y, ChunkZ * chunkWidth + z);
+
                 }
             }
         }
-
         CalculateMesh();
     }
 
@@ -70,22 +92,22 @@ public class Chunk : MonoBehaviour
                         continue;
                     // Top Face
                     if (IsAir(new Vector3Int(x, y + 1, z)))
-                        BuildFace(new Vector3(x, y, z), Vector3.forward, Vector3.right, false, vertices, uvs, indices);
+                        BuildFace(block.type, new Vector3(x, y, z), Vector3.forward, Vector3.right, false, vertices, uvs, indices);
                     // Bottom Face
                     if (IsAir(new Vector3Int(x, y - 1, z)))
-                        BuildFace(new Vector3(x, y - 1, z), Vector3.forward, Vector3.right, true, vertices, uvs, indices);
+                        BuildFace(block.type, new Vector3(x, y - 1, z), Vector3.forward, Vector3.right, true, vertices, uvs, indices);
                     // Left Face
                     if (IsAir(new Vector3Int(x - 1, y, z)))
-                        BuildFace(new Vector3(x, y - 1, z), Vector3.up, Vector3.forward, true, vertices, uvs, indices);
+                        BuildFace(block.type, new Vector3(x, y - 1, z), Vector3.up, Vector3.forward, true, vertices, uvs, indices);
                     // Right Face
                     if (IsAir(new Vector3Int(x + 1, y, z)))
-                        BuildFace(new Vector3(x + 1, y - 1, z), Vector3.up, Vector3.forward, false, vertices, uvs, indices);
+                        BuildFace(block.type, new Vector3(x + 1, y - 1, z), Vector3.up, Vector3.forward, false, vertices, uvs, indices);
                     // Back Face
                     if (IsAir(new Vector3Int(x, y, z - 1)))
-                        BuildFace(new Vector3(x, y - 1, z), Vector3.up, Vector3.right, false, vertices, uvs, indices);
+                        BuildFace(block.type, new Vector3(x, y - 1, z), Vector3.up, Vector3.right, false, vertices, uvs, indices);
                     // Front Face
                     if (IsAir(new Vector3Int(x, y, z + 1)))
-                        BuildFace(new Vector3(x, y - 1, z + 1), Vector3.up, Vector3.right, true, vertices, uvs, indices);
+                        BuildFace(block.type, new Vector3(x, y - 1, z + 1), Vector3.up, Vector3.right, true, vertices, uvs, indices);
                 }
             }
         }
@@ -100,9 +122,10 @@ public class Chunk : MonoBehaviour
         meshCollider.sharedMesh = mesh;
     }
 
-    private void BuildFace(Vector3 corner, Vector3 up, Vector3 right, bool reversed, List<Vector3> verts, List<Vector2> uvs, List<int> indices)
+    private void BuildFace(BlockType type, Vector3 corner, Vector3 up, Vector3 right, bool reversed, List<Vector3> verts, List<Vector2> uvs, List<int> indices)
     {
         int index = verts.Count;
+
         verts.Add(corner); // Bottom Left
         verts.Add(corner + up); // Top Left
         verts.Add(corner + right); // Bottom Right
@@ -110,8 +133,8 @@ public class Chunk : MonoBehaviour
 
         uvs.Add(new Vector2(0, 0));
         uvs.Add(new Vector2(0, 1));
-        uvs.Add(new Vector2(1, 1));
         uvs.Add(new Vector2(1, 0));
+        uvs.Add(new Vector2(1, 1));
 
         if (!reversed)
         {

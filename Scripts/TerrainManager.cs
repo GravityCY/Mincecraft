@@ -4,18 +4,30 @@ using UnityEngine;
 
 public class TerrainManager : MonoBehaviour
 {
+
+    public static TerrainManager instance;
+
+    [Header("Noise")]
+    [Tooltip("Determines the frequency of the noise")]
+    [Range(0,1)]
     public float frequency;
+    [Tooltip("Determines the scale of the noise")]
     public float scale;
-
+    [Tooltip("A seed will output different noise results")]
     public int seed;
-    public int chunkHeight;
-    public int chunkWidth;
 
+    [Header("Chunks")]
+    [Tooltip("The amount of blocks to populate a chunk with vertically")]
+    public int chunkHeight;
+    [Tooltip("The amount of blocks to populate a chunk with horizontally")]
+    public int chunkWidth;
+    [Tooltip("The default material of a chunks mesh")]
     public Material defMat;
 
-    public static TerrainManager instance;   
-
+    [Header("Player")]
+    [Tooltip("Distance of the chunks rendering around the player")]
     [SerializeField] private int viewDistance = 4;
+    [Space]
     [SerializeField] private Transform playerTransform;
     public List<Chunk> chunks { get; private set; } = new List<Chunk>();
 
@@ -78,7 +90,7 @@ public class TerrainManager : MonoBehaviour
         if (GetChunk(x, z) != null)
             return;
 
-        GameObject chunkObject = new GameObject(x + "," + z);
+        GameObject chunkObject = new GameObject(x + ":" + z);
         chunkObject.layer = LayerMask.NameToLayer("Ground");
         chunkObject.transform.position = new Vector3(x * chunkWidth, 0, z * chunkWidth);
         Chunk chunk = chunkObject.AddComponent<Chunk>();
@@ -124,7 +136,6 @@ public class TerrainManager : MonoBehaviour
         Chunk chunk = GetChunkWorldSpace(point);
         if (chunk == null) return null;
         Vector3Int blockPosition = chunk.WorldToLocal(point);
-        print(blockPosition);
         return chunk.GetBlock(blockPosition);
     }
 

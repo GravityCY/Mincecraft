@@ -27,10 +27,11 @@ public class PlayerInput : MonoBehaviour
 
     private void BreakBlock(RaycastHit result)
     {
+        Chunk chunk = result.collider.GetComponent<Chunk>();
+        if (chunk == null) return;
+
         BlockFace face = BlockFaceUtils.GetBlockFaceFromNormal(result.normal);
         Vector3 hitPoint = BlockFaceUtils.Normalize(result.point, face);
-        Chunk chunk = TerrainManager.instance.GetChunkWorldSpace(hitPoint);
-        Debug.Log(chunk.ChunkX + " " + chunk.ChunkZ);
         hitPoint.y += 1;
         TerrainManager.instance.BreakBlock(hitPoint);
 
@@ -86,10 +87,12 @@ public class PlayerInput : MonoBehaviour
     }
     private void PlaceBlock(RaycastHit result)
     {
+        Chunk chunk = result.collider.GetComponent<Chunk>();
+        if (chunk == null) return;
+
         BlockFace face = BlockFaceUtils.GetBlockFaceFromNormal(result.normal);
         Vector3 hitPoint = BlockFaceUtils.NormalizeOpposite(result.point, face);
         hitPoint.y += 1;
-        Chunk chunk = TerrainManager.instance.GetChunkWorldSpace(hitPoint);
 
         if ((int) hitPoint.x == (int) transform.position.x && (int) hitPoint.y == (int) (transform.position.y + 0.15f) && (int) hitPoint.z == (int) transform.position.z)
             return;
