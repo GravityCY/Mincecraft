@@ -16,7 +16,7 @@ public class Block
 
 	public Chunk GetChunk()
     {
-		Chunk chunk = TerrainManager.instance.GetChunkWorldSpace(new Vector3(x, y, z));
+		Chunk chunk = TerrainManager.instance.GetChunk(new Vector3(x, y, z));
 		return chunk;
     }
 
@@ -30,5 +30,26 @@ public class Block
 		Chunk chunk = GetChunk();
 		chunk.BreakBlock(new Vector3Int(x, y, z));
 	}
+
+	public Block GetNeighbourBlock(BlockFace towards)
+    {
+		int newX = x;
+		int newY = y;
+		int newZ = z;
+
+		if (towards == BlockFace.left)
+			newX--;
+		else if (towards == BlockFace.right)
+			newX++;
+		else if (towards == BlockFace.front)
+			newZ++;
+		else if (towards == BlockFace.back)
+			newZ--;
+		else if (towards == BlockFace.up)
+			newY++;
+		else if (towards == BlockFace.down)
+			newY--;
+		return TerrainManager.instance.GetBlock(new Vector3(newX, newY, newZ));
+    }
 
 }

@@ -52,4 +52,57 @@ public class BlockFaceUtils
             default: return Vector3.zero;
         }
     }
+
+    public static BlockFace GetFaceFromDirection(Vector3 start, Vector3 end)
+    {
+        if (start.x < end.x)
+            return BlockFace.right;
+        else if (start.x > end.x)
+            return BlockFace.left;
+        if (start.y < end.y)
+            return BlockFace.up;
+        else if (start.y > end.y)
+            return BlockFace.down;
+        if (start.z < end.z)
+            return BlockFace.front;
+        else if (start.z > end.z)
+            return BlockFace.back;
+
+        return BlockFace.down;
+    }
+
+    public static BlockFace GetFaceFromDirection(Vector2 start, Vector2 end)
+    {
+        float diffX = Mathf.Abs(start.x - end.x);
+        float diffZ = Mathf.Abs(start.y - end.y);
+
+        if(diffX > diffZ)
+        {
+            if (start.x < end.x)
+                return BlockFace.right;
+            else if (start.x > end.x)
+                return BlockFace.left;
+        } else
+        {
+            if (start.y < end.y)
+                return BlockFace.front;
+            else if (start.y > end.y)
+                return BlockFace.back;
+        }
+        return BlockFace.down;
+    }
+
+    public static BlockFace GetOppositeFace(BlockFace face)
+    {
+        switch (face)
+        {
+            case BlockFace.up: return BlockFace.down;
+            case BlockFace.down: return BlockFace.up;
+            case BlockFace.right: return BlockFace.left;
+            case BlockFace.left: return BlockFace.right;
+            case BlockFace.front: return BlockFace.back;
+            case BlockFace.back: return BlockFace.front;
+            default: return BlockFace.up;
+        }
+    }
 }

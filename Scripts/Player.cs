@@ -1,20 +1,52 @@
 ﻿using UnityEngine;
 
-public class PlayerInput : MonoBehaviour
+public class Player : MonoBehaviour
 {
-    private void Update()
+    #region SerializedFields
+    [SerializeField] [Tooltip("The player's camera")] private Camera cam;
+    [Space]
+    [SerializeField] [Tooltip("The player's speed at which he walks")] private float moveSpeed = 5;
+    [SerializeField] [Tooltip("The player's height at which he jumps")] private float jumpHeight = 1;
+    [Space]
+    [SerializeField] [Tooltip("The transform used to check whether the player is on the ground or not")] private Transform groundCheck;
+    [SerializeField] [Tooltip("The distance at which the groundCheck will activate")] private float checkRadius;
+    [Space]
+    [SerializeField] [Tooltip("The passive gravity to apply to the player")] private float gravity = -9.81f;
+    #endregion
+
+    private CharacterController cc;
+
+    private Vector3 velocity;
+
+    private float upRotation;
+
+    private void Awake()
+    {
+        Cursor.lockState = CursorLockMode.Locked;
+        cc = GetComponent<CharacterController>();
+    }
+
+    void Update()
+    {
+        HandleInput();
+        HandleMovement();
+    }
+
+    private void HandleInput()
     {
         if (Input.GetKeyDown(KeyCode.Mouse0))
         {
+            Cursor.lockState = CursorLockMode.Locked;
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit result;
             if (Physics.Raycast(ray, out result, 5, LayerMask.GetMask("Ground")))
             {
                 BreakBlock(result);
-            }   
+            }
         }
         if (Input.GetKeyDown(KeyCode.Mouse1))
         {
+            Cursor.lockState = CursorLockMode.Locked;
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit result;
             if (Physics.Raycast(ray, out result, 5, LayerMask.GetMask("Ground")))
@@ -22,6 +54,42 @@ public class PlayerInput : MonoBehaviour
                 PlaceBlock(result);
             }
         }
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (Cursor.lockState == CursorLockMode.Locked)
+                Cursor.lockState = CursorLockMode.None;
+        }
+    }
+    private void HandleMovement()
+    {
+        float horizontal = Input.GetAxis("Horizontal");
+        float vertical = Input.GetAxis("Vertical");
+        float mouseX = Input.GetAxis("Mouse X");
+        float mouseY = -Input.GetAxis("Mouse Y");
+        bool isGrounded = Physics.CheckSphere(groundCheck.position, checkRadius, LayerMask.GetMask("Ground"));
+        upRotation += mouseY;
+        upRotation = Mathf.Clamp(upRotation, -90, 90);
+
+        velocity.y += gravity * Time.deltaTime;
+
+        if (velocity.y < 0 && isGrounded)
+            velocity.y = -2;
+
+        Vector3 move = (horizontal * transform.right + vertical * transform.forward) * moveSpeed;
+
+        if (Input.GetKey(KeyCode.Space) && isGrounded)
+        {
+            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        }
+
+        Vector3 camRot = cam.transform.rotation.eulerAngles;
+        camRot.x = upRotation;
+
+        cam.transform.rotation = Quaternion.Euler(camRot);
+        transform.rotation *= Quaternion.Euler(0, mouseX, 0);
+
+        cc.Move(velocity * Time.deltaTime);
+        cc.Move(move * Time.deltaTime);
     }
 
     private void BreakBlock(RaycastHit result)
@@ -82,7 +150,7 @@ public class PlayerInput : MonoBehaviour
             {
                 neighbourChunk.RecalculateMesh();
             }
-        }        
+        }
     }
     private void PlaceBlock(RaycastHit result)
     {
@@ -93,9 +161,9 @@ public class PlayerInput : MonoBehaviour
         Vector3 hitPoint = BlockFaceUtils.NormalizeOpposite(result.point, face);
         hitPoint.y += 1;
 
-        if ((int) hitPoint.x == (int) transform.position.x && (int) hitPoint.y == (int) (transform.position.y + 0.15f) && (int) hitPoint.z == (int) transform.position.z)
+        if ((int)hitPoint.x == (int)transform.position.x && (int)hitPoint.y == (int)(transform.position.y + 0.15f) && (int)hitPoint.z == (int)transform.position.z)
             return;
-        if ((int) hitPoint.x == (int) transform.position.x && (int) hitPoint.y == (int) (transform.position.y + transform.lossyScale.y / 2f + 0.2f) && (int) hitPoint.z == (int) transform.position.z)
+        if ((int)hitPoint.x == (int)transform.position.x && (int)hitPoint.y == (int)(transform.position.y + transform.lossyScale.y / 2f + 0.2f) && (int)hitPoint.z == (int)transform.position.z)
             return;
 
         TerrainManager.instance.PlaceBlock(hitPoint, Material.Grass);

@@ -1,6 +1,6 @@
 ﻿
 public enum Material
 {
-    Grass, Stone, Air
+    Grass, Dirt, Stone, Air
 }
 
