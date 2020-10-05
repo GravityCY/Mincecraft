@@ -1,12 +1,11 @@
 ﻿using UnityEngine;
 
+[RequireComponent(typeof(AudioSource))]
 public class SoundManager : MonoBehaviour
 {
-
     public static SoundManager instance;
 
-    [SerializeField] private AudioClip[] sounds;
-    [SerializeField] private string[] soundId;
+    [SerializeField] private Sound[] sounds;
     private AudioSource source;
 
 
@@ -26,17 +25,19 @@ public class SoundManager : MonoBehaviour
 
     public void PlayAudio(string inputId)
     {
-        for(int i = 0; i < soundId.Length; i++)
+         foreach(Sound sound in sounds)
         {
-            string id = soundId[i];
-            if(inputId == id)
-            {
-                source.PlayOneShot(sounds[i]);
-                return;
-            }
-        }     
+            if (sound.id == inputId)
+                PlaySound(sound);
+        }
     }
 
+    private void PlaySound(Sound sound)
+    {
+        source.volume = sound.volume;
+        source.pitch = sound.pitch;
+        source.PlayOneShot(sound.clip);
+    }
 
 
 

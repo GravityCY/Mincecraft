@@ -1,13 +1,13 @@
-﻿using Mirror;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 
 public class TerrainManager : MonoBehaviour
 {
 
     public static TerrainManager instance;
+
+    #region Serialized Fields
 
     [Header("Noise")]
     [Tooltip("Determines the frequency of the noise")]
@@ -24,21 +24,77 @@ public class TerrainManager : MonoBehaviour
     public int chunkHeight;
     [Tooltip("The amount of blocks to populate a chunk with horizontally")]
     public int chunkWidth;
+    [Header("Material")]
     [Tooltip("The default material of a chunks mesh")]
     public UnityEngine.Material defMat;
+    [Tooltip("The amount of items in the texture on the X axis")]
+    public int itemCountX;
+    [Tooltip("The amount of items in the texture on the Y axis")]
+    public int itemCountY;
 
     [Header("Player")]
     [Tooltip("Distance of the chunks rendering around the player")]
-    [SerializeField] private int viewDistance = 4;
+    public int viewDistance = 4;
     [Space]
-    [SerializeField] private Transform playerTransform;
+    public Transform playerTransform;
+
+    #endregion
 
     private int playerPreviousChunkX = int.MinValue;
     private int playerPreviousChunkZ = int.MinValue;
 
+    [NonSerialized]
+    public Texture mainTexture;
     public List<Chunk> chunks { get; private set; } = new List<Chunk>();
 
-    private void Start()
+    #region Public Methods
+
+    public int ToChunkCoord(float point)
+    {
+        int chunkX = (int)(point / chunkWidth);
+        if (point < 0)
+            chunkX--;
+        return chunkX;
+    }
+    public Chunk GetChunk(Vector3 point)
+    {
+        return GetChunk(ToChunkCoord(point.x), ToChunkCoord(point.z));
+    }
+    public Chunk GetChunk(float x, float z)
+    {
+        for (int i = 0; i < TerrainManager.instance.chunks.Count; i++)
+        {
+            Chunk chunk = TerrainManager.instance.chunks[i];
+            if (chunk.ChunkX == (int)x && chunk.ChunkZ == (int)z)
+                return chunk;
+        }
+        return null;
+    }
+    public Block GetBlock(Vector3 point)
+    {
+        Chunk chunk = GetChunk(point);
+        if (chunk == null) return null;
+        Vector3Int blockPosition = chunk.WorldToLocal(point);
+        return chunk.GetBlock(blockPosition);
+    }
+    public bool BreakBlock(Vector3 point)
+    {
+        Chunk chunk = GetChunk(point);
+        if (chunk == null) return false;
+        return chunk.BreakBlock(chunk.WorldToLocal(point));
+    }
+    public bool PlaceBlock(Vector3 point, Material type)
+    {
+        Chunk chunk = GetChunk(point);
+        if (chunk == null) return false;
+        return chunk.PlaceBlock(chunk.WorldToLocal(point), type);
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    private void Awake()
     {
         if (instance == null){ instance = this; } 
         else if(instance != this)
@@ -46,6 +102,7 @@ public class TerrainManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+        mainTexture = defMat.GetTexture("_MainTex");
     }
     private void FixedUpdate()
     {
@@ -116,45 +173,6 @@ public class TerrainManager : MonoBehaviour
         if(chunk != null)
             chunk.gameObject.SetActive(false);
     }
-    public int ToChunkCoord(float point)
-    {
-        int chunkX = (int) (point / chunkWidth);
-        if (point < 0)
-            chunkX--;
-        return chunkX;
-    }
-    public Chunk GetChunk(Vector3 point)
-    {
-        return GetChunk(ToChunkCoord(point.x), ToChunkCoord(point.z));
-    }
-    public Chunk GetChunk(float x, float z)
-    {
-        for (int i = 0; i < TerrainManager.instance.chunks.Count; i++)
-        {
-            Chunk chunk = TerrainManager.instance.chunks[i];
-            if (chunk.ChunkX == (int)x && chunk.ChunkZ == (int)z)
-                return chunk;
-        }
-        return null;
-    }
-    public Block GetBlock(Vector3 point)
-    {
-        Chunk chunk = GetChunk(point);
-        if (chunk == null) return null;
-        Vector3Int blockPosition = chunk.WorldToLocal(point);
-        return chunk.GetBlock(blockPosition);
-    }
-    public bool BreakBlock(Vector3 point)
-    {
-        Chunk chunk = GetChunk(point);
-        if (chunk == null) return false;
-        return chunk.BreakBlock(chunk.WorldToLocal(point));
-    }
-    public bool PlaceBlock(Vector3 point, Material type)
-    {
-        Chunk chunk = GetChunk(point);
-        if (chunk == null) return false;
-        return chunk.PlaceBlock(chunk.WorldToLocal(point), type);
-    }
 
+    #endregion
 }

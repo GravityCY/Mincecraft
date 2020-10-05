@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshRenderer))]
@@ -17,6 +16,11 @@ public class Chunk : MonoBehaviour
     private static int chunkWidth;
     private static int chunkHeight;
 
+    private static float textureWidth;
+    private static float textureHeight;
+    private static int itemCountX;
+    private static int itemCountY;
+
     public Block[,,] blocks;
 
     MeshRenderer meshRenderer;
@@ -29,6 +33,12 @@ public class Chunk : MonoBehaviour
         meshCollider = GetComponent<MeshCollider>();
         meshFilter = GetComponent<MeshFilter>();
 
+
+        textureWidth = TerrainManager.instance.mainTexture.width;
+        textureHeight = TerrainManager.instance.mainTexture.height;
+        itemCountX = TerrainManager.instance.itemCountX;
+        itemCountY = TerrainManager.instance.itemCountY;
+
         chunkWidth = TerrainManager.instance.chunkWidth;
         chunkHeight = TerrainManager.instance.chunkHeight;
         seed = TerrainManager.instance.seed;
@@ -38,7 +48,6 @@ public class Chunk : MonoBehaviour
         blocks = new Block[chunkWidth, chunkHeight, chunkWidth];
 
         meshRenderer.material = TerrainManager.instance.defMat;
-
     }
     public void PopulateChunk()
     {
@@ -61,7 +70,7 @@ public class Chunk : MonoBehaviour
                             blocks[x, y - 1, z].material = Material.Dirt;
                     }
 
-                    blocks[x, y, z] = new Block(mat, (int) transform.position.x, y, (int) transform.position.z);
+                    blocks[x, y, z] = new Block(mat, (int)transform.position.x, y, (int)transform.position.z);
                 }
             }
         }
@@ -73,10 +82,10 @@ public class Chunk : MonoBehaviour
         List<Vector3> vertices = new List<Vector3>();
         List<Vector2> uvs = new List<Vector2>();
         List<int> indices = new List<int>();
-        
+
         for (int y = 0; y < chunkHeight; y++)
         {
-            for (int z = 0; z < chunkWidth; z++) 
+            for (int z = 0; z < chunkWidth; z++)
             {
                 for (int x = 0; x < chunkWidth; x++)
                 {
@@ -131,7 +140,7 @@ public class Chunk : MonoBehaviour
     }
     public void RecalculateMesh()
     {
-        if(meshFilter.mesh != null)
+        if (meshFilter.mesh != null)
             meshFilter.mesh.Clear();
         CalculateMesh();
     }
@@ -145,9 +154,9 @@ public class Chunk : MonoBehaviour
     }
     public Vector3Int WorldToLocal(Vector3 position)
     {
-        int x = (int) (position.x - ChunkX * chunkWidth);
-        int y = (int)  position.y;
-        int z = (int) (position.z - ChunkZ * chunkWidth);
+        int x = (int)(position.x - ChunkX * chunkWidth);
+        int y = (int)position.y;
+        int z = (int)(position.z - ChunkZ * chunkWidth);
         return new Vector3Int(x, y, z);
     }
     public Chunk GetNeighbourChunk(BlockFace face)
@@ -162,7 +171,7 @@ public class Chunk : MonoBehaviour
         if (face == BlockFace.front)
             chunkZ++;
         else if (face == BlockFace.back)
-            chunkZ--;       
+            chunkZ--;
 
         return TerrainManager.instance.GetChunk(chunkX, chunkZ);
     }
@@ -185,11 +194,11 @@ public class Chunk : MonoBehaviour
     {
         if (!IsInArrayBounds(position))
             return null;
-        return blocks[position.x,position.y,position.z];
+        return blocks[position.x, position.y, position.z];
     }
     public bool BreakBlock(Block block)
     {
-        SoundManager.instance.PlayAudio(GetBlockSound(ActionType.Dig, block.material));
+        SoundManager.instance.PlayAudio(GetBlockSoundId(ActionType.Dig, block.material));
         block.material = Material.Air;
         RecalculateMesh();
         return true;
@@ -202,7 +211,7 @@ public class Chunk : MonoBehaviour
     }
     public bool PlaceBlock(Block block, Material material)
     {
-        SoundManager.instance.PlayAudio(GetBlockSound(ActionType.Place, material));
+        SoundManager.instance.PlayAudio(GetBlockSoundId(ActionType.Place, material));
         block.material = material;
         RecalculateMesh();
         return true;
@@ -220,13 +229,19 @@ public class Chunk : MonoBehaviour
 
         if (!IsInArrayBounds(position))
         {
+            Chunk chunk = GetNeighbourChunk(GetFaceFromDirection(position));
+            if (chunk != null)
+            {
+                Block block = chunk.GetBlock(chunk.WorldToLocal(LocalToWorld(position)));
+                return block.IsAir();
+            }
             Vector2Int coords = GetNeighbourChunkCoords(GetFaceFromDirection(position));
             Vector3 localBlockPosition = WorldToLocal(LocalToWorld(position), coords.x, coords.y);
             return GetTheoreticalBlockMaterial(localBlockPosition, coords) == Material.Air;
         }
         return GetBlock(position).IsAir();
     }
-    public string GetBlockSound(ActionType action, Material mat)
+    public string GetBlockSoundId(ActionType action, Material mat)
     {
         switch (action)
         {
@@ -235,10 +250,8 @@ public class Chunk : MonoBehaviour
                     switch (mat)
                     {
                         case Material.Dirt:
-                        case Material.Grass:
-                            {
-                                return "dig_grass";
-                            }
+                        case Material.Grass: return "dig_grass";
+                        case Material.Stone: return "dig_stone";
                         default: return null;
                     }
                 }
@@ -247,10 +260,8 @@ public class Chunk : MonoBehaviour
                     switch (mat)
                     {
                         case Material.Dirt:
-                        case Material.Grass:
-                            {
-                                return "place_grass";
-                            }
+                        case Material.Grass: return "place_grass";
+                        case Material.Stone: return "place_stone";
                         default: return null;
                     }
                 }
@@ -285,31 +296,45 @@ public class Chunk : MonoBehaviour
     }
     private static float CalculateNoiseValue(Vector3 pos, Vector2 offset)
     {
-        float noiseX = Mathf.Abs((pos.x + offset.x) / 20f * frequency) + seed;
-        float noiseY = Mathf.Abs(pos.y / 20f * frequency) + seed;
-        float noiseZ = Mathf.Abs((pos.z + offset.y) / 20f * frequency) + seed;
+        
+        float noiseX = (float)(Mathf.Abs((pos.x + offset.x) / 20f * frequency) + seed);
+        float noiseY = (float)(Mathf.Abs(pos.y / 20f * frequency) + seed);
+        float noiseZ = (float)(Mathf.Abs((pos.z + offset.y) / 20f * frequency) + seed);
 
         float noiseValue = SimplexNoise.Noise.Generate(noiseX, noiseY, noiseZ);
         noiseValue += (10 - pos.y) / 10f * scale;
+
         return noiseValue;
     }
-    private static float GetWidth(int totalItemCount, float eachItemWidth)
+    private static Vector2 GetUVWidth()
     {
-        return eachItemWidth / (totalItemCount * eachItemWidth);
+        Vector2 UVWidth = new Vector2(textureWidth / itemCountX / textureWidth, textureHeight / itemCountY / textureHeight);
+        return UVWidth;
     }
-    private static Vector2 GetCornerFromMaterial(Material material, BlockFace face)
+    private static Vector2 GetUVCorner(int itemIndexX, int itemIndexY)
     {
-
+        float itemWidth = textureWidth / itemCountX;
+        float itemHeight = textureHeight / itemCountY;
+        Vector2 cornerPixels = new Vector2(itemIndexX * itemWidth, itemIndexY * itemHeight);
+        Vector2 cornerPercent = new Vector2(cornerPixels.x / textureWidth, cornerPixels.y / textureHeight);
+        return cornerPercent;
+    }
+    private static Vector2 GetUVCornerFromMaterial(Material material, BlockFace face)
+    {
         switch (material)
         {
-            case Material.Dirt: return new Vector2(32 / 48f, 0);
+            case Material.Dirt: return GetUVCorner(2, 0);
             case Material.Grass:
                 {
                     if (face == BlockFace.up)
-                        return new Vector2(0, 0);
+                        return GetUVCorner(0, 0);
                     if (face == BlockFace.down)
-                        return new Vector2(32 / 48f, 0);
-                    return new Vector2(16 / 48f, 0);
+                        return GetUVCorner(2, 0);
+                    return GetUVCorner(1, 0);
+                }
+            case Material.Stone:
+                {
+                    return GetUVCorner(3, 0);
                 }
             default: return Vector2.zero;
         }
@@ -324,8 +349,8 @@ public class Chunk : MonoBehaviour
         verts.Add(corner + up + right); //Top Right
         verts.Add(corner + right); // Bottom Right
 
-        Vector2 uvWidth = new Vector2(GetWidth(3, 16), 1);
-        Vector2 uvCorner = GetCornerFromMaterial(material, face);
+        Vector2 uvWidth = GetUVWidth();
+        Vector2 uvCorner = GetUVCornerFromMaterial(material, face);
 
         uvs.Add(new Vector2(uvCorner.x, uvCorner.y));
         uvs.Add(new Vector2(uvCorner.x, uvCorner.y + uvWidth.y));

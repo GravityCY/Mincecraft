@@ -19,6 +19,7 @@ public class Player : MonoBehaviour
     private Vector3 velocity;
 
     private float upRotation;
+    private Material matInHand = Material.Grass;
 
     private void Awake()
     {
@@ -34,6 +35,15 @@ public class Player : MonoBehaviour
 
     private void HandleInput()
     {
+        if (!Input.anyKey) return;
+
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+            matInHand = Material.Grass;
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
+            matInHand = Material.Dirt;
+        else if (Input.GetKeyDown(KeyCode.Alpha3))
+            matInHand = Material.Stone;
+
         if (Input.GetKeyDown(KeyCode.Mouse0))
         {
             Cursor.lockState = CursorLockMode.Locked;
@@ -97,9 +107,8 @@ public class Player : MonoBehaviour
         Chunk chunk = result.collider.GetComponent<Chunk>();
         if (chunk == null) return;
 
-        BlockFace face = BlockFaceUtils.GetBlockFaceFromNormal(result.normal);
-        Vector3 hitPoint = BlockFaceUtils.Normalize(result.point, face);
-        hitPoint.y += 1;
+        Vector3 hitPoint = result.point - result.normal / 4;
+        hitPoint.y = Mathf.Ceil(hitPoint.y);
         TerrainManager.instance.BreakBlock(hitPoint);
 
         float hitXF = hitPoint.x;
@@ -157,16 +166,15 @@ public class Player : MonoBehaviour
         Chunk chunk = result.collider.GetComponent<Chunk>();
         if (chunk == null) return;
 
-        BlockFace face = BlockFaceUtils.GetBlockFaceFromNormal(result.normal);
-        Vector3 hitPoint = BlockFaceUtils.NormalizeOpposite(result.point, face);
-        hitPoint.y += 1;
+        Vector3 hitPoint = result.point + result.normal / 4;
+        hitPoint.y = Mathf.Ceil(hitPoint.y);
 
         if ((int)hitPoint.x == (int)transform.position.x && (int)hitPoint.y == (int)(transform.position.y + 0.15f) && (int)hitPoint.z == (int)transform.position.z)
             return;
         if ((int)hitPoint.x == (int)transform.position.x && (int)hitPoint.y == (int)(transform.position.y + transform.lossyScale.y / 2f + 0.2f) && (int)hitPoint.z == (int)transform.position.z)
             return;
 
-        TerrainManager.instance.PlaceBlock(hitPoint, Material.Grass);
+        TerrainManager.instance.PlaceBlock(hitPoint, matInHand);
         chunk.RecalculateMesh();
     }
 }
